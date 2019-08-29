@@ -1,56 +1,61 @@
 package etec;
 import robocode.*;
-//import java.awt.Color;
-
-// API help : https://robocode.sourceforge.io/docs/robocode/robocode/Robot.html
-
+import robocode.util.Utils;
+import java.awt.Color;
 /**
- * Carlitos - a robot by (your name here)
+ * Carlitos - a robot by (Gabriel S. Martins && Valter Muniz)
  */
-public class Carlitos extends Robot
+public class Carlitos extends AdvancedRobot
 {
-	/**
-	 * run: Carlitos's default behavior
-	 */
+	int movementDirection = 1;
+	double previousEnergy = 100;
+	double changeInEnergy = 0;
 	public void run() {
-		// Initialization of the robot should be put here
-
-		// After trying out your robot, try uncommenting the import at the top,
-		// and the next line:
-
-		// setColors(Color.red,Color.blue,Color.green); // body,gun,radar
-
-		// Robot main loop
+ 
+		setAdjustGunForRobotTurn(true);
+		setAdjustRadarForGunTurn(true);
+		setBodyColor(Color.lightGray);
 		while(true) {
-			// Replace the next 4 lines with any behavior you would like
-			ahead(100);
-			turnGunRight(360);
-			back(100);
-			turnGunRight(360);
+			if (getRadarTurnRemaining() == 0.0)
+		            	setTurnRadarRightRadians(Double.POSITIVE_INFINITY);
+	        	execute();
 		}
 	}
-
-	/**
-	 * onScannedRobot: What to do when you see another robot
-	 */
 	public void onScannedRobot(ScannedRobotEvent e) {
-		// Replace the next line with any behavior you would like
-		fire(1);
+		double turn = e.getBearing() + 90 - (e.getDistance()/10);
+		setMaxVelocity(12 - turn);
+		setTurnRight(turn);
+		setAhead(100*movementDirection);
+		double bulletSpeed = 20;
+		double absBearing = e.getBearingRadians() + getHeadingRadians();
+		double enemyLatVel = e.getVelocity()*Math.sin(e.getHeadingRadians() - absBearing);
+		double enemyDirection = Math.signum(enemyLatVel);
+		double escapeAngle = Math.asin(4.0 / bulletSpeed);
+		double angleOffset = escapeAngle * enemyDirection * Math.random();
+		changeInEnergy =previousEnergy-e.getEnergy();
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing + angleOffset - getGunHeadingRadians()));
+		if (changeInEnergy>0 && changeInEnergy<=3) {
+		movementDirection = -movementDirection;
+		setAhead((e.getDistance()/4+25)*movementDirection);
+		setTurnLeft(90);
+		}
+		if(e.getDistance() < 200){
+		fire (1);
+		}
+		else if(e.getDistance() < 50){
+		fire(2);
+		}
+		double radarTurn = getHeadingRadians() + e.getBearingRadians() - getRadarHeadingRadians();
+ 
+    	setTurnRadarRightRadians(Utils.normalRelativeAngle(radarTurn));
 	}
-
-	/**
-	 * onHitByBullet: What to do when you're hit by a bullet
-	 */
+	
 	public void onHitByBullet(HitByBulletEvent e) {
-		// Replace the next line with any behavior you would like
 		back(10);
 	}
 	
-	/**
-	 * onHitWall: What to do when you hit a wall
-	 */
 	public void onHitWall(HitWallEvent e) {
-		// Replace the next line with any behavior you would like
-		back(20);
+		setTurnRight(90);
+		movementDirection = -movementDirection;
 	}	
 }
